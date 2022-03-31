@@ -1,23 +1,52 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.0;
 
-import { IERC20 } from '../interfaces/IERC20.sol';
-import { InternalFunctions } from '../lib/InternalFunctions.sol';
+import { ERC20 } from '@solidstate/contracts/token/ERC20/ERC20.sol';
+import { IERC20 } from '@solidstate/contracts/token/ERC20/IERC20.sol';
+import { ERC20BaseStorage } from '@solidstate/contracts/token/ERC20/base/ERC20BaseStorage.sol';
+import { ERC20MetadataStorage } from '@solidstate/contracts/token/ERC20/metadata/ERC20MetadataStorage.sol';
+import { MyTokenInit } from "../storage/MyTokenInit.sol";
+import { ERC20TokenStorage } from '../storage/ERC20TokenStorage.sol';
+import { GovernanceStorage } from '../storage/GovernanceStorage.sol'; 
 
-contract ERC20Token is IERC20, InternalFunctions {   
+contract ERC20Token is IERC20 {
 
-    function name() public pure override returns (string memory) { return 'GovernanceToken'; }
+    using ERC20MetadataStorage for ERC20MetadataStorage.Layout;
 
-    function symbol() public pure override returns (string memory) { return 'GT'; }
+    function initMyToken() public {
+        ERC20MetadataStorage.Layout storage l = ERC20MetadataStorage.layout();
 
-    function decimals() public pure override returns (uint8) { return 18; }
+        MyTokenInit.MyTokenInitStorage storage mti = MyTokenInit.initStorage();
+
+        require(!mti.isInitialized, 'Contract is already initialized!');
+        mti.isInitialized = true;
+
+        l.setName("MTK");
+        l.setSymbol("MTK");
+        l.setDecimals(8);
+
+        _mint(msg.sender, 1000);
+    }
+
+
+    function name() public view virtual returns (string memory) {
+        return ERC20MetadataStorage.layout().name;
+    }
+
+    function symbol() public view virtual returns (string memory) {
+        return ERC20MetadataStorage.layout().symbol;
+    }
+
+    function decimals() public view virtual returns (uint8) {
+        return ERC20MetadataStorage.layout().decimals;
+    }
     
     function totalSupply() external view override returns (uint) {        
-        return erc20TokenStorage().totalSupply;
+        return ERC20TokenStorage.layout().totalSupply;
     }
 
     function balanceOf(address _owner) external view override returns (uint balance) {
-        ERC20TokenStorage storage gts = erc20TokenStorage();
+        ERC20TokenStorage.Layout storage gts = ERC20TokenStorage.layout();
         balance = gts.balances[_owner];
     }
 
@@ -27,11 +56,11 @@ contract ERC20Token is IERC20, InternalFunctions {
     }
 
     function transferFrom(address _from, address _to, uint _value) external override returns (bool success) {
-        ERC20TokenStorage storage gts = erc20TokenStorage();
+        ERC20TokenStorage.Layout storage gts = ERC20TokenStorage.layout();
         uint allow = gts.approved[_from][msg.sender];
         require(allow >= _value || msg.sender == _from, 'ERC20: Not authorized to transfer');
         _transferFrom(_from, _to, _value);
-        if(msg.sender != _from && allow != uint(-1)) {
+        if(msg.sender != _from/*  && allow != uint(-1) */) {
             allow -= _value; 
             gts.approved[_from][msg.sender] = allow;
             emit Approval(_from, msg.sender, allow);
@@ -40,38 +69,39 @@ contract ERC20Token is IERC20, InternalFunctions {
     }
 
     function _transferFrom(address _from, address _to, uint _value) internal {
-        (ERC20TokenStorage storage gts,
-         GovernanceStorage storage gs) = governanceTokenStorage();
-        uint balance = gts.balances[_from];
+        ERC20TokenStorage.Layout storage ets = ERC20TokenStorage.layout();
+        GovernanceStorage.Layout storage gs = GovernanceStorage.layout(); 
+        uint balance = ets.balances[_from];
         require(_value <= balance, 'ERC20: Balance less than transfer amount');
-        gts.balances[_from] = balance - _value;
-        gts.balances[_to] += _value;
+        ets.balances[_from] = balance - _value;
+        ets.balances[_to] += _value;
         emit Transfer(_from, _to, _value);
 
         uint24[] storage proposalIds = gs.votedProposalIds[_from];
         uint index = proposalIds.length;
         while(index > 0) {
             index--;
-            Proposal storage proposalStorage = gs.proposals[proposalIds[index]];
-            require(block.timestamp > proposalStorage.endTime, 'ERC20Token: Can\'t transfer during vote');
+            GovernanceStorage.Proposal storage proposalStorage = gs.proposals[proposalIds[index]];
+            require(block.timestamp > proposalStorage.deadline, 'ERC20Token: Cannot transfer during vote');
             require(msg.sender != proposalStorage.proposer || proposalStorage.executed, 'ERC20Token: Proposal must execute first.');
             proposalIds.pop();
         }
     }
 
     function approve(address _spender, uint _value) external override returns (bool success) {
-        ERC20TokenStorage storage gts = erc20TokenStorage();
+        ERC20TokenStorage.Layout storage gts = ERC20TokenStorage.layout();
         gts.approved[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
         success = true;
     }
 
     function allowance(address _owner, address _spender) external view override returns (uint remaining) {
-        remaining = erc20TokenStorage().approved[_owner][_spender];
+        ERC20TokenStorage.Layout storage gts = ERC20TokenStorage.layout();
+        remaining = gts.approved[_owner][_spender];
     }
 
     function increaseAllowance(address _spender, uint _value) external returns (bool success) {
-        ERC20TokenStorage storage gts = erc20TokenStorage();
+        ERC20TokenStorage.Layout storage gts = ERC20TokenStorage.layout();
         uint allow = gts.approved[msg.sender][_spender];
         uint newAllow = allow + _value;
         require(newAllow > allow || _value == 0, 'Integer Overflow');
@@ -81,7 +111,7 @@ contract ERC20Token is IERC20, InternalFunctions {
     }
 
     function decreaseAllowance(address _spender, uint _value) external returns (bool success) {
-        ERC20TokenStorage storage gts = erc20TokenStorage();
+        ERC20TokenStorage.Layout storage gts = ERC20TokenStorage.layout();
         uint allow = gts.approved[msg.sender][_spender];
         uint newAllow = allow - _value;
         require(newAllow < allow || _value == 0, 'Integer Underflow');
@@ -89,4 +119,10 @@ contract ERC20Token is IERC20, InternalFunctions {
         emit Approval(msg.sender, _spender, newAllow);
         success = true;
     }   
+
+    function _mint(address _to, uint96 _value) internal {
+        ERC20TokenStorage.Layout storage gts = ERC20TokenStorage.layout();   
+        gts.totalSupply += _value;
+        gts.balances[_to] += _value;
+    }
 }
