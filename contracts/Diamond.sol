@@ -32,9 +32,6 @@ contract Diamond {
         ERC20Token erc20Token = new ERC20Token();
         Governance governance = new Governance();
 
-/*         FacetRepository.FacetRepositoryStorage storage frs = FacetRepository.facetRepositoryStorage();
-        frs.repo = _facetsRepository; */
-
         // Add the diamondCut external function from the diamondCutFacet
         IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](4);
         
