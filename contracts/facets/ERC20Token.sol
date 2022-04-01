@@ -5,7 +5,7 @@ import { ERC20 } from '@solidstate/contracts/token/ERC20/ERC20.sol';
 import { IERC20 } from '@solidstate/contracts/token/ERC20/IERC20.sol';
 import { ERC20BaseStorage } from '@solidstate/contracts/token/ERC20/base/ERC20BaseStorage.sol';
 import { ERC20MetadataStorage } from '@solidstate/contracts/token/ERC20/metadata/ERC20MetadataStorage.sol';
-import { MyTokenInit } from "../storage/MyTokenInit.sol";
+import { MyTokenInit } from "../storage/MyTokenInit.sol"; 
 import { ERC20TokenStorage } from '../storage/ERC20TokenStorage.sol';
 import { GovernanceStorage } from '../storage/GovernanceStorage.sol'; 
 
@@ -27,7 +27,6 @@ contract ERC20Token is IERC20 {
 
         _mint(msg.sender, 1000);
     }
-
 
     function name() public view virtual returns (string memory) {
         return ERC20MetadataStorage.layout().name;

@@ -14,7 +14,6 @@ import { DiamondLoupeFacet } from './facets/diamond/DiamondLoupeFacet.sol';
 import { DiamondCutFacet } from './facets/diamond/DiamondCutFacet.sol';
 import { IDiamondLoupe } from './interfaces/IDiamondLoupe.sol';
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-// import { FacetRepository } from "./storage/FacetRepository.sol";
 
 import { ERC20Token } from './facets/ERC20Token.sol';
 import { Governance } from './facets/Governance.sol';

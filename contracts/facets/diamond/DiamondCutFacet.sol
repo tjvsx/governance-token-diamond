@@ -8,13 +8,8 @@ pragma solidity ^0.8.0;
 
 import { IDiamondCut } from "../../interfaces/IDiamondCut.sol";
 import { LibDiamond } from "../../libraries/LibDiamond.sol";
-import { FacetRepository } from "../../storage/FacetRepository.sol";
 
 contract DiamondCutFacet is IDiamondCut {
-    function setRepo(address repo) external {
-        FacetRepository.FacetRepositoryStorage storage frs = FacetRepository.facetRepositoryStorage();
-        frs.repo = repo;
-    }
     /// @notice Add/replace/remove any number of functions and optionally execute
     ///         a function with delegatecall
     /// @param _diamondCut Contains the facet addresses and function selectors
