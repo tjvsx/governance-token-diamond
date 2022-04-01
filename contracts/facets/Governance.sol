@@ -5,8 +5,6 @@ pragma solidity ^0.8.0;
 import { ERC20TokenStorage } from '../storage/ERC20TokenStorage.sol';
 import { GovernanceStorage } from '../storage/GovernanceStorage.sol'; 
 
-
-
 contract Governance {
     
     event Propose(address _proposer, address _proposalContract, uint _endTime);
